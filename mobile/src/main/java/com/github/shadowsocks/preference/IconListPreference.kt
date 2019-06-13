@@ -22,17 +22,21 @@ package com.github.shadowsocks.preference
 
 import android.content.Context
 import android.graphics.drawable.Drawable
-import android.support.v7.preference.ListPreference
 import android.util.AttributeSet
+import androidx.preference.ListPreference
 
 class IconListPreference(context: Context, attrs: AttributeSet? = null) : ListPreference(context, attrs) {
+    companion object FallbackProvider : SummaryProvider<IconListPreference> {
+        override fun provideSummary(preference: IconListPreference?): CharSequence? {
+            val i = preference?.selectedEntry
+            return if (i != null && i < 0) preference.unknownValueSummary?.format(preference.value) else
+                preference?.entry
+        }
+    }
+
     var entryIcons: Array<Drawable?>? = null
     val selectedEntry: Int get() = entryValues.indexOf(value)
-    val entryIcon: Drawable? get() = try {
-        entryIcons?.get(selectedEntry)
-    } catch (_: ArrayIndexOutOfBoundsException) {
-        null
-    }
+    val entryIcon: Drawable? get() = entryIcons?.getOrNull(selectedEntry)
 //    fun setEntryIcons(@ArrayRes entryIconsResId: Int) {
 //        val array = getContext().getResources().obtainTypedArray(entryIconsResId)
 //        entryIcons = Array(array.length(), { i -> array.getDrawable(i) })
@@ -49,31 +53,26 @@ class IconListPreference(context: Context, attrs: AttributeSet? = null) : ListPr
     }
 
     init {
-        super.setOnPreferenceChangeListener({ preference, newValue ->
+        super.setOnPreferenceChangeListener { preference, newValue ->
             val listener = listener
             if (listener == null || listener.onPreferenceChange(preference, newValue)) {
                 value = newValue.toString()
-                checkSummary()
                 if (entryIcons != null) icon = entryIcon
                 true
             } else false
-        })
+        }
 //        val a = context.obtainStyledAttributes(attrs, R.styleable.IconListPreference)
 //        val entryIconsResId: Int = a.getResourceId(R.styleable.IconListPreference_entryIcons, -1)
 //        if (entryIconsResId != -1) entryIcons = entryIconsResId
 //        a.recycle()
     }
 
-    fun checkSummary() {
-        val unknownValueSummary = unknownValueSummary
-        if (unknownValueSummary != null) summary = if (selectedEntry < 0) unknownValueSummary.format(value) else "%s"
-    }
-
     fun init() {
         icon = entryIcon
+        summaryProvider = FallbackProvider
     }
-    override fun onSetInitialValue(restoreValue: Boolean, defaultValue: Any?) {
-        super.onSetInitialValue(restoreValue, defaultValue)
+    override fun onSetInitialValue(defaultValue: Any?) {
+        super.onSetInitialValue(defaultValue)
         init()
     }
 }
