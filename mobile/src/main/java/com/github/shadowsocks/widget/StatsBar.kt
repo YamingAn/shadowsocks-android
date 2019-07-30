@@ -25,6 +25,7 @@ import android.text.format.Formatter
 import android.util.AttributeSet
 import android.view.View
 import android.widget.TextView
+import androidx.appcompat.widget.TooltipCompat
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Observer
@@ -35,6 +36,7 @@ import com.github.shadowsocks.R
 import com.github.shadowsocks.bg.BaseService
 import com.github.shadowsocks.net.HttpsTest
 import com.google.android.material.bottomappbar.BottomAppBar
+import kotlin.math.abs
 
 class StatsBar @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null,
                                          defStyleAttr: Int = R.attr.bottomAppBarStyle) :
@@ -53,8 +55,8 @@ class StatsBar @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
                                         dxConsumed: Int, dyConsumed: Int, dxUnconsumed: Int, dyUnconsumed: Int,
                                         type: Int, consumed: IntArray) {
                 val dy = dyConsumed + dyUnconsumed
-                super.onNestedScroll(coordinatorLayout, child, target, dxConsumed,
-                        if (Math.abs(dy) >= threshold) dy else 0, dxUnconsumed, 0, type, consumed)
+                super.onNestedScroll(coordinatorLayout, child, target, dxConsumed, if (abs(dy) >= threshold) dy else 0,
+                        dxUnconsumed, 0, type, consumed)
             }
         }
         return behavior
@@ -69,21 +71,26 @@ class StatsBar @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
         super.setOnClickListener(l)
     }
 
+    private fun setStatus(text: CharSequence) {
+        statusText.text = text
+        TooltipCompat.setTooltipText(this, text)
+    }
+
     fun changeState(state: BaseService.State) {
         val activity = context as MainActivity
         if (state != BaseService.State.Connected) {
             updateTraffic(0, 0, 0, 0)
             tester.status.removeObservers(activity)
             if (state != BaseService.State.Idle) tester.invalidate()
-            statusText.setText(when (state) {
+            setStatus(context.getText(when (state) {
                 BaseService.State.Connecting -> R.string.connecting
                 BaseService.State.Stopping -> R.string.stopping
                 else -> R.string.not_connected
-            })
+            }))
         } else {
             behavior.slideUp(this)
             tester.status.observe(activity, Observer {
-                it.retrieve(statusText::setText) { activity.snackbar(it).show() }
+                it.retrieve(this::setStatus) { activity.snackbar(it).show() }
             })
         }
     }

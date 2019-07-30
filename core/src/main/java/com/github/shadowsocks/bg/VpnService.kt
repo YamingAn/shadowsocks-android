@@ -36,6 +36,7 @@ import com.github.shadowsocks.acl.Acl
 import com.github.shadowsocks.core.R
 import com.github.shadowsocks.net.ConcurrentLocalSocketListener
 import com.github.shadowsocks.net.DefaultNetworkListener
+import com.github.shadowsocks.net.HostsFile
 import com.github.shadowsocks.net.Subnet
 import com.github.shadowsocks.preference.DataStore
 import com.github.shadowsocks.utils.Key
@@ -89,7 +90,7 @@ class VpnService : BaseVpnService(), LocalDnsService.Interface {
         }
     }
 
-    inner class NullConnectionException : NullPointerException() {
+    inner class NullConnectionException : NullPointerException(), BaseService.ExpectedException {
         override fun getLocalizedMessage() = getString(R.string.reboot_required)
     }
 
@@ -142,9 +143,9 @@ class VpnService : BaseVpnService(), LocalDnsService.Interface {
     override suspend fun resolver(host: String) = DnsResolverCompat.resolve(DefaultNetworkListener.get(), host)
     override suspend fun openConnection(url: URL) = DefaultNetworkListener.get().openConnection(url)
 
-    override suspend fun startProcesses() {
+    override suspend fun startProcesses(hosts: HostsFile) {
         worker = ProtectWorker().apply { start() }
-        super.startProcesses()
+        super.startProcesses(hosts)
         sendFd(startVpn())
     }
 
