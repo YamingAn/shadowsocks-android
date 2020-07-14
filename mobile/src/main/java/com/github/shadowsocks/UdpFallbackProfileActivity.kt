@@ -28,7 +28,6 @@ import android.view.ViewGroup
 import android.widget.CheckedTextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
-import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -37,8 +36,9 @@ import com.github.shadowsocks.database.ProfileManager
 import com.github.shadowsocks.plugin.PluginConfiguration
 import com.github.shadowsocks.preference.DataStore
 import com.github.shadowsocks.utils.SingleInstanceActivity
-import com.github.shadowsocks.utils.consumeSystemWindowInsetsWithList
 import com.github.shadowsocks.utils.resolveResourceId
+import com.github.shadowsocks.widget.ListHolderListener
+import com.github.shadowsocks.widget.ListListener
 
 class UdpFallbackProfileActivity : AppCompatActivity() {
     inner class ProfileViewHolder(view: View) : RecyclerView.ViewHolder(view), View.OnClickListener {
@@ -64,7 +64,7 @@ class UdpFallbackProfileActivity : AppCompatActivity() {
     }
 
     inner class ProfilesAdapter : RecyclerView.Adapter<ProfileViewHolder>() {
-        internal val profiles = (ProfileManager.getAllProfiles()?.toMutableList() ?: mutableListOf())
+        internal val profiles = (ProfileManager.getActiveProfiles()?.toMutableList() ?: mutableListOf())
                 .filter { it.id != editingId && PluginConfiguration(it.plugin ?: "").selected.isEmpty() }
 
         override fun onBindViewHolder(holder: ProfileViewHolder, position: Int) =
@@ -87,7 +87,7 @@ class UdpFallbackProfileActivity : AppCompatActivity() {
         }
         SingleInstanceActivity.register(this) ?: return
         setContentView(R.layout.layout_udp_fallback)
-        consumeSystemWindowInsetsWithList()
+        ListHolderListener.setup(this)
 
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         toolbar.setTitle(R.string.udp_fallback)
@@ -95,10 +95,7 @@ class UdpFallbackProfileActivity : AppCompatActivity() {
         toolbar.setNavigationOnClickListener { finish() }
 
         findViewById<RecyclerView>(R.id.list).apply {
-            setOnApplyWindowInsetsListener { v, insets ->
-                v.updatePadding(bottom = insets.systemWindowInsetBottom)
-                insets.consumeSystemWindowInsets()
-            }
+            setOnApplyWindowInsetsListener(ListListener)
             itemAnimator = DefaultItemAnimator()
             adapter = profilesAdapter
             layoutManager = LinearLayoutManager(this@UdpFallbackProfileActivity, RecyclerView.VERTICAL, false).apply {
